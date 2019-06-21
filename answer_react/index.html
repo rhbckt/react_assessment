@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="js/react.js"></script>
+<script src="js/react-dom.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.24.0/babel.js"></script>
+    
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+<script src="jquery.pajinatify.min.js"></script>
+<link rel="stylesheet" href="jquery.pajinatify.css">
+
+<script type="text/babel">
+var page = 1;
+var count = 0;
+var queryData;
+
+$(document).ready(function () {
+  $('#search').focus();
+
+  $('#search').keypress(function(event) {
+    var keycode = (event.keyCode ? event.keyCode : event.which);
+
+    if (keycode == '13') {
+      page = 1;
+      var keywords = $('#search').val();
+
+      queryData = {
+        per_page: 10,
+        q: keywords,
+        page: page
+      };
+
+      doSearch();
+    }
+  });
+});
+
+function doSearch() {
+  $.getJSON("https://api.github.com/search/repositories", queryData, function (data, textStatus, jqXHR) {
+
+    $('#resultsCount').empty();
+    $('#results').empty();
+    $('#paginationContainer').empty();
+
+    if (data.total_count == 0) {
+      alert("No results found.");
+
+      return;
+    }
+/*
+    for (var i = 0; i < data.items.length; i++) {
+      var resultRow = "<div style='display: flex; flex-direction: row;'><div style='flex: 3;'>" + data.items[i].full_name + "</div><div style='flex: 1'>" + data.items[i].language + "</div><div style='flex: 1'>" + data.items[i].stargazers_count + "</div></div><div>" + data.items[i].description + "</div><div>" + data.items[i].updated_at + "</div>";
+
+      $('#results').append(resultRow);
+    }
+*/
+    ReactDOM.render(<ResultsItem data={data.items} />, document.getElementById('results'));
+
+    var resultsCount = "<h1>" + data.total_count + " repository results</h1>";
+    count = data.total_count;
+
+    $('#resultsCount').append(resultsCount);
+    var pagingDiv = "<div id='paginationDiv' class='pagination' data-total-count='" + data.total_count + "' data-take='10'></div>";
+
+    $("#paginationContainer").append(pagingDiv);
+
+    $('#paginationDiv').pajinatify({
+      onChange: function (currentPage) {
+        if (page != currentPage) {
+          page = currentPage;
+          queryData.page = currentPage;
+          doSearch();
+        }
+      },
+      debug: 1
+    });
+
+    $('#paginationDiv').pajinatify('set', page, count);
+  });
+}
+
+const rowStyle = {
+  display: 'flex',
+  flexDirection: 'row'
+}
+
+const col1Style = {
+  flex: 3
+}
+
+const col2Style = {
+  flex: 1
+}
+
+const col3Style = {
+  flex: 1
+}
+
+class ResultsItem extends React.Component {
+  constructor(props) {
+    super(props)
+  }
+
+  render() {
+    return <div className="container">
+             {this.props.data.map((item) => 
+             <div key={item.id}>
+               <div style={rowStyle}>
+                 <div style={col1Style}>{item.full_name}</div>
+                 <div style={col2Style}>{item.language}</div>
+                 <div style={col3Style}>{item.stargazers_count}</div>
+               </div>
+               <div>{item.description}</div>
+               <div>{item.updated_at}</div>
+             </div>
+             )}
+           </div>
+  }
+}
+</script>
+
+<style>
+#search {
+  background-image: url("magnifying-glass.gif");
+  background-repeat: no-repeat;
+  background-position: right;
+}
+</style>    
+    
+</head>
+
+<body>
+<input type="text" id="search" />
+
+<div id="resultsCount"></div>
+<div id="results">
+</div>
+
+<div id="paginationContainer">
+</div>
+
+</body>
+
+</html>
